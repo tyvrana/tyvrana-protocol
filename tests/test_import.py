@@ -7,6 +7,19 @@ def test_package_imports() -> None:
 
 def test_public_api_is_available_at_the_package_root() -> None:
     expected = {
+        "ARTIFACT_HEADER_SIZE",
+        "MAX_ARTIFACT_CHUNK_SIZE",
+        "ArtifactChunk",
+        "ArtifactAbort",
+        "ArtifactAccepted",
+        "ArtifactBegin",
+        "ArtifactComplete",
+        "ArtifactDescriptor",
+        "ArtifactReady",
+        "ArtifactId",
+        "TransferId",
+        "decode_artifact_chunk",
+        "encode_artifact_chunk",
         "AdapterEvent",
         "AdapterRegistration",
         "CancelRequest",

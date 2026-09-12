@@ -41,3 +41,9 @@ type QualifiedName = Annotated[
     str, Field(strict=True, pattern=r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 ]
 """Two or more lowercase dotted segments, each beginning with a letter."""
+
+type ArtifactId = Annotated[str, Field(strict=True, pattern=r"^[0-9a-f]{32}$")]
+"""Opaque 128-bit identifier written as exactly 32 lowercase hexadecimal digits."""
+
+type TransferId = ArtifactId
+"""An independently generated 128-bit transfer identifier; never reused."""

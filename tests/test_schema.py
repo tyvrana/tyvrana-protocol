@@ -13,6 +13,11 @@ def test_message_union_has_a_portable_json_schema(mode: JsonSchemaMode) -> None:
     assert json.loads(json.dumps(schema)) == schema
     assert schema["discriminator"]["propertyName"] == "type"
     expected = {
+        "artifact.begin": "ArtifactBegin",
+        "artifact.ready": "ArtifactReady",
+        "artifact.complete": "ArtifactComplete",
+        "artifact.accepted": "ArtifactAccepted",
+        "artifact.abort": "ArtifactAbort",
         "adapter.register": "AdapterRegistration",
         "operation.request": "OperationRequest",
         "operation.success": "OperationSuccess",

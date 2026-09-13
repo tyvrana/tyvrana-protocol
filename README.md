@@ -12,7 +12,7 @@ Every top-level message has a required `type` discriminator:
 | Python model | Wire `type` | Direction | Contents |
 | --- | --- | --- | --- |
 | `AdapterRegistration` | `adapter.register` | Adapter → core | Instance ID, application name, optional application version and project path, supported operations |
-| `OperationRequest` | `operation.request` | Core → adapter | Request ID, operation name, arguments |
+| `OperationRequest` | `operation.request` | Core → adapter | Request ID, operation name, arguments, optional input artifact descriptors |
 | `OperationSuccess` | `operation.success` | Adapter → core | Request ID, result, optional artifact descriptors |
 | `OperationFailure` | `operation.failure` | Adapter → core | Request ID, structured error |
 | `AdapterEvent` | `adapter.event` | Adapter → core | Event name, payload |
@@ -108,38 +108,59 @@ location. Its exact fields are:
 | `byte_size` | Integer from 0 through 2^53−1 (portable JSON integer range) |
 | `sha256` | SHA-256 of the exact bytes, 64 lowercase hexadecimal digits |
 
-A successful operation may include `artifacts`, an ordered array of at most eight
-unique descriptors. An empty array is omitted by the encoder. `result` remains a
-required ordinary `JsonValue`; artifact bytes never belong in it. There are no
-application-specific artifact models or metadata bags.
+An operation request or successful result may include `artifacts`, an ordered
+array of at most eight descriptors with unique artifact IDs. An empty array is
+omitted by the encoder; explicit null is invalid. `arguments` and `result` remain
+required ordinary `JsonValue`; artifact bytes never belong in them. There are no
+application-specific artifact models or metadata bags. Requests reference input
+bytes already accepted by the adapter; results reference output bytes already
+accepted by core. Each list must match the complete descriptors transferred for
+that request and direction, including size and SHA-256.
 
 ### Control and ordering
 
 | Model | Wire `type` | Direction | Fields besides `type` |
 | --- | --- | --- | --- |
-| `ArtifactBegin` | `artifact.begin` | Adapter → core | `transfer_id`, `request_id`, `descriptor` |
-| `ArtifactReady` | `artifact.ready` | Core → adapter | `transfer_id` |
-| `ArtifactComplete` | `artifact.complete` | Adapter → core | `transfer_id` |
-| `ArtifactAccepted` | `artifact.accepted` | Core → adapter | `transfer_id` |
+| `ArtifactBegin` | `artifact.begin` | Sender → receiver | `transfer_id`, `request_id`, `descriptor` |
+| `ArtifactReady` | `artifact.ready` | Receiver → sender | `transfer_id` |
+| `ArtifactComplete` | `artifact.complete` | Sender → receiver | `transfer_id` |
+| `ArtifactAccepted` | `artifact.accepted` | Receiver → sender | `transfer_id` |
 | `ArtifactAbort` | `artifact.abort` | Either direction | `transfer_id`, `error` (`ProtocolError`) |
 
-Every transfer belongs to an outstanding operation on that adapter connection.
-Send `begin`, wait for `ready` (storage reserved), send chunks, send `complete`,
-then wait for `accepted` (exact size and SHA-256 verified). Only then send
-`operation.success` with the identical descriptor. Its artifact list must contain
-exactly the artifacts completed for that request. Independent transfers may
-interleave messages; each has independent offsets and hash state.
+Every transfer belongs to one request on that adapter connection. The same
+controls and binary framing work in both directions:
+
+- **Inputs, core → adapter:** send `begin`, wait for `ready` (storage reserved),
+  send chunks, send `complete`, then wait for `accepted` (exact size and SHA-256
+  verified). After all inputs are accepted, send `operation.request` with their
+  identical descriptors. The adapter must not execute an incomplete request.
+- **Outputs, adapter → core:** the operation must already be outstanding. Follow
+  the same handshake, then send `operation.success` with its output descriptors.
+
+Input `begin` establishes request-scoped staging before an operation exists in
+the adapter execution queue. Receivers bound staged requests, storage, entries,
+and transfer waits, and reject conflicting or unclaimed data. Request IDs cannot
+be reused on a connection. Independent transfers may interleave messages; each
+has independent offsets and hash state. Input and output attachments are separate
+sets, not implicitly echoed between request and response.
 
 Generate separate random 128-bit IDs for artifacts and transfers, for example
-`uuid4().hex`. IDs must not be reused; collisions must never overwrite existing
-transfers or artifacts. Receivers reject unrecognized requests and conflicting
-IDs. Limits are checked before `ready`; readiness reserves the full declared
+`uuid4().hex`. Transfer IDs must not be reused; collisions must never overwrite
+active data. An artifact ID identifies immutable content and may be reused by
+later or concurrent requests, each with a fresh transfer ID and independent
+request-scoped receiver storage. Receivers reject unrecognized output requests,
+conflicting descriptors, and duplicate attachments. Limits are checked before
+`ready`; readiness reserves the full declared
 size. Receiver policy sets artifact, storage, entry, and concurrency bounds well
 below the wire integer maximum.
 
 `abort` terminates the transfer and fails its operation; both endpoints clean all
-artifacts associated with that unsuccessful request. `operation.cancel` cancels
-all transfers for the request, including completed but not yet returned artifacts.
+request-scoped artifacts associated with that unsuccessful request.
+`operation.cancel` also applies before `operation.request`: it cancels all input
+and output transfers for the request, including accepted staging data. Cancelling
+one use does not release the sender's reusable source artifact or another request's
+copy. An adapter releases staged input files after completion/failure; core owns
+the lifetime of imported source artifacts independently.
 Disconnect and shutdown clean unfinished operations. A sender must stop producing
 chunks when cancellation or rejection arrives. Already queued late chunks may be
 rejected without affecting unrelated operations where correlation is available;

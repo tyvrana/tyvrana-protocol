@@ -76,23 +76,14 @@ class AdapterRegistration(_ProtocolModel):
         return value
 
 
-class OperationRequest(_ProtocolModel):
-    """Ask an adapter to perform one named operation."""
+class _ArtifactMessage(_ProtocolModel):
+    """An operation's ordered, complete input or output attachments."""
 
-    type: Literal["operation.request"]
-    request_id: Identifier
-    operation: QualifiedName
-    arguments: JsonValue
-
-
-class OperationSuccess(_ProtocolModel):
-    """Return an operation's result, including a meaningful JSON null."""
-
-    type: Literal["operation.success"]
-    request_id: Identifier
-    result: JsonValue
     artifacts: tuple[ArtifactDescriptor, ...] = Field(
-        default=(), max_length=8, exclude_if=lambda value: not value
+        default=(),
+        max_length=8,
+        exclude_if=lambda value: not value,
+        json_schema_extra={"uniqueItems": True},
     )
 
     @field_validator("artifacts", mode="before")
@@ -106,8 +97,25 @@ class OperationSuccess(_ProtocolModel):
         cls, value: tuple[ArtifactDescriptor, ...]
     ) -> tuple[ArtifactDescriptor, ...]:
         if len({item.artifact_id for item in value}) != len(value):
-            raise ValueError("Artifact identifiers must be unique in a result")
+            raise ValueError("Attached artifact identifiers must be unique")
         return value
+
+
+class OperationRequest(_ArtifactMessage):
+    """Perform one operation after its input artifacts have been accepted."""
+
+    type: Literal["operation.request"]
+    request_id: Identifier
+    operation: QualifiedName
+    arguments: JsonValue
+
+
+class OperationSuccess(_ArtifactMessage):
+    """Return a result after its output artifacts have been accepted."""
+
+    type: Literal["operation.success"]
+    request_id: Identifier
+    result: JsonValue
 
 
 class OperationFailure(_ProtocolModel):
@@ -134,7 +142,7 @@ class CancelRequest(_ProtocolModel):
 
 
 class ArtifactBegin(_ProtocolModel):
-    """Adapter requests storage for one artifact of an outstanding operation."""
+    """Sender requests receiver storage for one operation input or output."""
 
     type: Literal["artifact.begin"]
     transfer_id: TransferId
@@ -143,21 +151,21 @@ class ArtifactBegin(_ProtocolModel):
 
 
 class ArtifactReady(_ProtocolModel):
-    """Core has reserved storage; the adapter may start sending chunks."""
+    """Receiver reserved storage; the sender may start sending chunks."""
 
     type: Literal["artifact.ready"]
     transfer_id: TransferId
 
 
 class ArtifactComplete(_ProtocolModel):
-    """Adapter has sent every byte and requests integrity verification."""
+    """Sender sent every byte and requests integrity verification."""
 
     type: Literal["artifact.complete"]
     transfer_id: TransferId
 
 
 class ArtifactAccepted(_ProtocolModel):
-    """Core verified the bytes; operation success may reference the artifact."""
+    """Receiver verified bytes; the operation request/result may reference them."""
 
     type: Literal["artifact.accepted"]
     transfer_id: TransferId

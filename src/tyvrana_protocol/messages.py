@@ -1,5 +1,6 @@
 """Application-independent messages exchanged by core and running adapters."""
 
+import json
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -25,6 +26,40 @@ class ProtocolError(_ProtocolModel):
     code: Identifier
     message: _NonBlankText
     details: JsonValue = Field(default=None, exclude_if=lambda value: value is None)
+
+
+class OperationContract(_ProtocolModel):
+    """Self-contained operation schemas and behavior, supplied by the adapter."""
+
+    name: QualifiedName
+    description: Annotated[str, Field(min_length=1, max_length=1600, pattern=r"\S")]
+    arguments_schema: dict[str, JsonValue]
+    result_schema: dict[str, JsonValue]
+    effect: Literal["read_only", "mutating", "transient", "lifecycle"]
+    execution: Literal["synchronous", "job_start", "job_status", "lifecycle"]
+    requires_interactive: bool = False
+    input_artifacts: Literal["none", "required"] = "none"
+    output_artifacts: Literal["none", "optional", "required"] = "none"
+
+    @field_validator("arguments_schema", "result_schema")
+    @classmethod
+    def bounded_local_schema(cls, schema: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        if len(json.dumps(schema, ensure_ascii=False).encode("utf-8")) > 131072:
+            raise ValueError("Each operation schema is limited to 128 KiB")
+        pending: list[JsonValue] = [schema]
+        while pending:
+            item = pending.pop()
+            if isinstance(item, dict):
+                for key in ("$ref", "$dynamicRef"):
+                    reference = item.get(key)
+                    if key in item and (
+                        not isinstance(reference, str) or not reference.startswith("#")
+                    ):
+                        raise ValueError("Operation schema references must be local")
+                pending.extend(item.values())
+            elif isinstance(item, list):
+                pending.extend(item)
+        return schema
 
 
 class ArtifactDescriptor(_ProtocolModel):
@@ -57,8 +92,8 @@ class AdapterRegistration(_ProtocolModel):
     project_path: _NonBlankText | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
-    operations: tuple[QualifiedName, ...] = Field(
-        json_schema_extra={"uniqueItems": True}
+    operations: tuple[OperationContract, ...] = Field(
+        max_length=512, json_schema_extra={"uniqueItems": True}
     )
 
     @field_validator("operations", mode="before")
@@ -69,11 +104,15 @@ class AdapterRegistration(_ProtocolModel):
     @field_validator("operations")
     @classmethod
     def _require_unique_operations(
-        cls, value: tuple[QualifiedName, ...]
-    ) -> tuple[QualifiedName, ...]:
-        if len(value) != len(set(value)):
+        cls, value: tuple[OperationContract, ...]
+    ) -> tuple[OperationContract, ...]:
+        if len(value) != len({item.name for item in value}):
             raise ValueError("Advertised operation names must be unique")
         return value
+
+    @property
+    def operation_names(self) -> tuple[str, ...]:
+        return tuple(item.name for item in self.operations)
 
 
 class _ArtifactMessage(_ProtocolModel):

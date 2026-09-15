@@ -30,7 +30,20 @@ original request ID. Uniqueness across messages is the sender's responsibility.
 Operation and event names use two or more lowercase dotted segments, each
 matching `[a-z][a-z0-9_]*`. Names such as `document.inspect` are illustrations;
 this package does not define application operations or event payload schemas.
-Registrations reject duplicate operation names and may advertise an empty list.
+Registrations contain up to 512 `OperationContract` values with unique names and
+may advertise an empty list. Each contract contains a description, self-contained
+argument/result JSON Schemas, effect (`read_only`, `mutating`, `transient`, or
+`lifecycle`), execution (`synchronous`, `job_start`, `job_status`, or `lifecycle`),
+interactive-context requirements and input/output artifact behavior. Schemas are
+limited to 128 KiB each and references must be local. Generate them from the
+adapter's actual validators; cross-field/native-state rules still require runtime
+validation and a useful error. Defaults describe omitted arguments and must not be
+blindly materialized by clients, since explicit fields can affect host semantics.
+
+Core can expose selected contracts without repeated application round trips.
+`operation_names` is a local derived convenience; only contracts travel in
+registration. Contracts describe behavior, not permission grants, transaction
+promises, arbitrary-code execution or versioned compatibility interfaces.
 Project paths are opaque strings interpreted by the application that owns them.
 
 `JsonValue` represents null, booleans, integers, finite floats, strings, arrays,
@@ -52,6 +65,7 @@ copies input containers and encoding revalidates their contents.
 from tyvrana_protocol import (
     AdapterRegistration,
     OperationRequest,
+    OperationContract,
     decode_message,
     encode_message,
 )
@@ -61,7 +75,16 @@ registration = AdapterRegistration(
     instance_id="adapter-a",
     application="Example Editor",
     application_version="2026.9",
-    operations=("document.inspect",),
+    operations=(
+        OperationContract(
+            name="document.inspect",
+            description="Inspect the current document without modifying it.",
+            arguments_schema={"type": "object", "additionalProperties": False},
+            result_schema={"type": "object"},
+            effect="read_only",
+            execution="synchronous",
+        ),
+    ),
 )
 registration_bytes = encode_message(registration)
 

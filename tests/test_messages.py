@@ -7,6 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 from tyvrana_protocol import (
     AdapterRegistration,
     JsonValue,
+    OperationContract,
     OperationRequest,
     ProtocolError,
     QualifiedName,
@@ -21,10 +22,10 @@ def test_registration_accepts_json_operation_arrays(operations: list[str]) -> No
             "type": "adapter.register",
             "instance_id": "adapter-a",
             "application": "A Future Application",
-            "operations": operations,
+            "operations": [contract(name).model_dump() for name in operations],
         }
     )
-    assert registration.operations == tuple(operations)
+    assert registration.operation_names == tuple(operations)
 
 
 @pytest.mark.parametrize(
@@ -149,8 +150,60 @@ def test_registration_does_not_retain_the_input_operation_list() -> None:
             "type": "adapter.register",
             "instance_id": "adapter-a",
             "application": "Example Editor",
-            "operations": operations,
+            "operations": [contract(name).model_dump() for name in operations],
         }
     )
     operations.append("asset.describe")
-    assert registration.operations == ("document.inspect",)
+    assert registration.operation_names == ("document.inspect",)
+
+
+def contract(name: str = "document.inspect") -> OperationContract:
+    return OperationContract(
+        name=name,
+        description="Inspect a document.",
+        arguments_schema={"type": "object"},
+        result_schema={"type": "object"},
+        effect="read_only",
+        execution="synchronous",
+    )
+
+
+def test_duplicate_contract_names_rejected() -> None:
+    with pytest.raises(ValidationError, match="unique"):
+        AdapterRegistration(
+            type="adapter.register",
+            instance_id="a",
+            application="Test",
+            operations=(contract(), contract()),
+        )
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"$ref": "https://example.com/schema"},
+        {"$defs": {"nested": {"$dynamicRef": "external.json"}}},
+        {"description": "x" * 131072},
+    ],
+)
+def test_invalid_contract_schema_is_rejected(schema: dict[str, JsonValue]) -> None:
+    data = contract().model_dump()
+    data["arguments_schema"] = schema
+    with pytest.raises(ValidationError):
+        OperationContract.model_validate(data)
+
+
+def test_contract_schemas_preserve_constraints_and_copy_inputs() -> None:
+    schema: dict[str, JsonValue] = {
+        "$defs": {"N": {"type": "integer", "minimum": 1}},
+        "type": "object",
+        "properties": {"count": {"$ref": "#/$defs/N"}},
+        "required": ["count"],
+        "additionalProperties": False,
+    }
+    data = contract().model_dump()
+    data["arguments_schema"] = schema
+    c = OperationContract.model_validate(data)
+    schema["required"] = []
+    assert c.arguments_schema["required"] == ["count"]
+    assert OperationContract.model_validate_json(c.model_dump_json()) == c

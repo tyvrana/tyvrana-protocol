@@ -9,6 +9,7 @@ from tyvrana_protocol import (
     CancelRequest,
     JsonValue,
     Message,
+    OperationContract,
     OperationFailure,
     OperationRequest,
     OperationSuccess,
@@ -28,10 +29,23 @@ from tyvrana_protocol import (
                 application="Example Editor",
                 application_version="2026.9",
                 project_path="projects/example.project",
-                operations=("document.inspect",),
+                operations=(
+                    OperationContract(
+                        name="document.inspect",
+                        description="Inspect a document.",
+                        arguments_schema={"type": "object"},
+                        result_schema={"type": "object"},
+                        effect="read_only",
+                        execution="synchronous",
+                    ),
+                ),
             ),
             b'{"application":"Example Editor","application_version":"2026.9",'
-            b'"instance_id":"adapter-a","operations":["document.inspect"],'
+            b'"instance_id":"adapter-a","operations":[{"arguments_schema":{"type":"object"},'
+            b'"description":"Inspect a document.","effect":"read_only",'
+            b'"execution":"synchronous",'
+            b'"input_artifacts":"none","name":"document.inspect","output_artifacts":"none",'
+            b'"requires_interactive":false,"result_schema":{"type":"object"}}],'
             b'"project_path":"projects/example.project","type":"adapter.register"}',
         ),
         (

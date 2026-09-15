@@ -26,6 +26,7 @@ def test_public_api_is_available_at_the_package_root() -> None:
         "Identifier",
         "JsonValue",
         "Message",
+        "OperationContract",
         "OperationFailure",
         "OperationRequest",
         "OperationSuccess",

@@ -25,9 +25,19 @@ from .messages import (
     OperationSuccess,
     ProtocolError,
 )
+from .resources import (
+    ResourceInspectionRequest,
+    ResourceInspectionResult,
+    ResourceObservation,
+    ResourceReference,
+)
 from .types import ArtifactId, Identifier, JsonValue, QualifiedName, TransferId
 
 __all__ = [
+    "ResourceReference",
+    "ResourceObservation",
+    "ResourceInspectionRequest",
+    "ResourceInspectionResult",
     "ARTIFACT_HEADER_SIZE",
     "MAX_ARTIFACT_CHUNK_SIZE",
     "ArtifactChunk",

@@ -243,3 +243,18 @@ uv run --locked mypy
 To format Python files, run `uv run --locked ruff format .`.
 
 Build a wheel and source distribution with `uv build`.
+
+## Saved application identity
+
+Registration may advertise a saved `project_id` and a `resource_inspection`
+operation implementing `ResourceInspectionRequest` / `ResourceInspectionResult`.
+The operation must be advertised as read-only with no artifacts. Core can resolve
+up to 64 unique `(resource_kind, resource_id)` references in the expected document
+without understanding native application data. Adapters reject a different opened
+document and report missing, ambiguous or unsupported resources explicitly.
+
+Saved identities survive renames and reopening; `instance_id` identifies only a
+running adapter, and `project_path` is a mutable locator. The adapter owns identity
+creation, persistence and duplicate handling. A content fingerprint covers only the
+adapter's declared `fingerprint_scope`; identity existence is not visual, geometry
+or behavior validation. Semantic projects, checkpoints and persistence belong to core.

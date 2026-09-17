@@ -3,7 +3,7 @@
 import json
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .types import ArtifactId, Identifier, JsonValue, QualifiedName, TransferId
 
@@ -92,6 +92,16 @@ class AdapterRegistration(_ProtocolModel):
     project_path: _NonBlankText | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
+    project_id: Annotated[Identifier, Field(max_length=128)] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="Saved application-document identity; paths are only locators.",
+    )
+    resource_inspection: QualifiedName | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="Advertised read-only ResourceInspectionRequest/Result operation.",
+    )
     operations: tuple[OperationContract, ...] = Field(
         max_length=512, json_schema_extra={"uniqueItems": True}
     )
@@ -113,6 +123,21 @@ class AdapterRegistration(_ProtocolModel):
     @property
     def operation_names(self) -> tuple[str, ...]:
         return tuple(item.name for item in self.operations)
+
+    @model_validator(mode="after")
+    def inspection_is_advertised(self) -> "AdapterRegistration":
+        if self.resource_inspection is not None and not any(
+            op.name == self.resource_inspection
+            and op.effect == "read_only"
+            and op.input_artifacts == "none"
+            and op.output_artifacts == "none"
+            for op in self.operations
+        ):
+            raise ValueError(
+                "Resource inspection must advertise a read-only operation "
+                "without artifacts"
+            )
+        return self
 
 
 class _ArtifactMessage(_ProtocolModel):

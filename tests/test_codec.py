@@ -42,10 +42,11 @@ from tyvrana_protocol import (
             ),
             b'{"application":"Example Editor","application_version":"2026.9",'
             b'"instance_id":"adapter-a","operations":[{"arguments_schema":{"type":"object"},'
+            b'"category":"general",'
             b'"description":"Inspect a document.","effect":"read_only",'
             b'"execution":"synchronous",'
             b'"input_artifacts":"none","name":"document.inspect","output_artifacts":"none",'
-            b'"requires_interactive":false,"result_schema":{"type":"object"}}],'
+            b'"requires_interactive":false,"result_schema":{"type":"object"},"tags":[]}],'
             b'"project_path":"projects/example.project","type":"adapter.register"}',
         ),
         (

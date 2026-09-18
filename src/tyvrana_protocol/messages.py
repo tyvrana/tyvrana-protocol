@@ -33,6 +33,12 @@ class OperationContract(_ProtocolModel):
 
     name: QualifiedName
     description: Annotated[str, Field(min_length=1, max_length=1600, pattern=r"\S")]
+    category: Annotated[str, Field(max_length=64, pattern=r"^[a-z][a-z0-9_]*$")] = (
+        "general"
+    )
+    tags: tuple[
+        Annotated[str, Field(max_length=48, pattern=r"^[a-z][a-z0-9_]*$")], ...
+    ] = Field(default=(), max_length=12, json_schema_extra={"uniqueItems": True})
     arguments_schema: dict[str, JsonValue]
     result_schema: dict[str, JsonValue]
     effect: Literal["read_only", "mutating", "transient", "lifecycle"]
@@ -40,6 +46,18 @@ class OperationContract(_ProtocolModel):
     requires_interactive: bool = False
     input_artifacts: Literal["none", "required"] = "none"
     output_artifacts: Literal["none", "optional", "required"] = "none"
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def tag_array(cls, value: object) -> object:
+        return tuple(value) if isinstance(value, list) else value
+
+    @field_validator("tags")
+    @classmethod
+    def unique_tags(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) != len(set(value)):
+            raise ValueError("Capability tags must be unique")
+        return value
 
     @field_validator("arguments_schema", "result_schema")
     @classmethod

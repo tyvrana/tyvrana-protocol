@@ -207,3 +207,31 @@ def test_contract_schemas_preserve_constraints_and_copy_inputs() -> None:
     schema["required"] = []
     assert c.arguments_schema["required"] == ["count"]
     assert OperationContract.model_validate_json(c.model_dump_json()) == c
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"category": ""},
+        {"category": "a" * 65},
+        {"category": "Unsafe label"},
+        {"tags": ["same", "same"]},
+        {"tags": ["a" * 49]},
+        {"tags": [f"tag{i}" for i in range(13)]},
+    ],
+)
+def test_capability_metadata_bounds(changes: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        OperationContract.model_validate(contract().model_dump() | changes)
+
+
+def test_capability_metadata_roundtrip() -> None:
+    value = OperationContract.model_validate(
+        contract().model_dump()
+        | {
+            "category": "geometry",
+            "tags": ["clearance", "sampled"],
+        }
+    )
+    assert value.tags == ("clearance", "sampled")
+    assert OperationContract.model_validate_json(value.model_dump_json()) == value

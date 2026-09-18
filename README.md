@@ -34,7 +34,9 @@ Registrations contain up to 512 `OperationContract` values with unique names and
 may advertise an empty list. Each contract contains a description, self-contained
 argument/result JSON Schemas, effect (`read_only`, `mutating`, `transient`, or
 `lifecycle`), execution (`synchronous`, `job_start`, `job_status`, or `lifecycle`),
-interactive-context requirements and input/output artifact behavior. Schemas are
+interactive-context requirements and input/output artifact behavior. A bounded
+`category` and unique `tags` provide application-independent discovery metadata;
+the declaring registry owns these labels. Schemas are
 limited to 128 KiB each and references must be local. Generate them from the
 adapter's actual validators; cross-field/native-state rules still require runtime
 validation and a useful error. Defaults describe omitted arguments and must not be

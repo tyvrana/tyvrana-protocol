@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from pydantic import Field, RootModel, model_validator
 
 from .messages import ProtocolError, _ProtocolModel
-from .resources import ResourceToken
+from .resources import ResourceObservation, ResourceToken
 
 
 class AttestationLimits(_ProtocolModel):
@@ -73,6 +73,8 @@ class DocumentAttestation(_ProtocolModel):
     file_sha256: Annotated[str, Field(pattern="^[0-9a-f]{64}$")] | None = None
 
     work: AttestationWork | None = None
+    resources: list[ResourceObservation] = Field(default_factory=list, max_length=4096)
+    resource_scope: str | None = Field(default=None, max_length=128)
 
     @model_validator(mode="after")
     def qualified(self) -> "DocumentAttestation":

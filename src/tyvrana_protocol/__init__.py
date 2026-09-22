@@ -30,6 +30,11 @@ from .messages import (
     OperationSuccess,
     ProtocolError,
 )
+from .mutations import (
+    DocumentMutationJob,
+    DocumentMutationRequest,
+    DocumentMutationResult,
+)
 from .resources import (
     ResourceInspectionRequest,
     ResourceInspectionResult,
@@ -39,6 +44,9 @@ from .resources import (
 from .types import ArtifactId, Identifier, JsonValue, QualifiedName, TransferId
 
 __all__ = [
+    "DocumentMutationJob",
+    "DocumentMutationRequest",
+    "DocumentMutationResult",
     "DocumentAttestation",
     "DocumentAttestationJob",
     "DocumentAttestationResponse",

@@ -8,6 +8,8 @@ def test_package_imports() -> None:
 def test_public_api_is_available_at_the_package_root() -> None:
     expected = {
         "DocumentAttestation",
+        "DocumentAttestationJob",
+        "DocumentAttestationResponse",
         "ResourceReference",
         "ResourceInspectionRequest",
         "ResourceInspectionResult",

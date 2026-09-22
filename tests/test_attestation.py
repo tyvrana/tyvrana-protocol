@@ -77,3 +77,18 @@ def test_bounded_work_diagnostics() -> None:
     for patch in patches:
         with pytest.raises(ValidationError):
             AttestationWork.model_validate({**data, **patch})
+
+
+def test_attestation_job_cannot_claim_unfinished_evidence() -> None:
+    from tyvrana_protocol import DocumentAttestationJob, DocumentAttestationResponse
+
+    queued = DocumentAttestationJob(job_id="work", state="queued")
+    assert (
+        DocumentAttestationResponse.model_validate(queued.model_dump()).root == queued
+    )
+    with pytest.raises(ValidationError, match="requires evidence"):
+        DocumentAttestationJob(job_id="work", state="completed")
+    with pytest.raises(ValidationError):
+        DocumentAttestationJob(job_id="work", state="running", revision=-1)
+    with pytest.raises(ValidationError):
+        DocumentAttestationJob(job_id="work", state="running", poll_after_seconds=0)

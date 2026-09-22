@@ -7,7 +7,11 @@ from .artifacts import (
     decode_artifact_chunk,
     encode_artifact_chunk,
 )
-from .attestation import DocumentAttestation
+from .attestation import (
+    DocumentAttestation,
+    DocumentAttestationJob,
+    DocumentAttestationResponse,
+)
 from .codec import decode_message, encode_message
 from .messages import (
     AdapterEvent,
@@ -36,6 +40,8 @@ from .types import ArtifactId, Identifier, JsonValue, QualifiedName, TransferId
 
 __all__ = [
     "DocumentAttestation",
+    "DocumentAttestationJob",
+    "DocumentAttestationResponse",
     "ResourceReference",
     "ResourceObservation",
     "ResourceInspectionRequest",

@@ -2,9 +2,9 @@
 
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, RootModel, model_validator
 
-from .messages import _ProtocolModel
+from .messages import ProtocolError, _ProtocolModel
 from .resources import ResourceToken
 
 
@@ -16,6 +16,7 @@ class AttestationLimits(_ProtocolModel):
     resources: int = Field(ge=1)
     elapsed_ms: int = Field(ge=1)
     nesting: int = Field(ge=1)
+    resource_elapsed_ms: int | None = Field(default=None, ge=1)
 
 
 class AttestationCost(_ProtocolModel):
@@ -40,6 +41,7 @@ class AttestationWork(_ProtocolModel):
             "resources",
             "elapsed_ms",
             "nesting",
+            "resource_elapsed_ms",
         ]
         | None
     ) = None
@@ -86,3 +88,30 @@ class DocumentAttestation(_ProtocolModel):
                 "Incomplete evidence must explain omissions, without digest"
             )
         return self
+
+
+class DocumentAttestationJob(_ProtocolModel):
+    """Observable application work with bounded progress and final evidence."""
+
+    job_id: ResourceToken
+    state: Literal["queued", "running", "completed", "failed", "cancelled"]
+    revision: int = Field(default=0, ge=0)
+    elapsed_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
+    poll_after_seconds: float = Field(default=0.5, ge=0.1, le=5)
+    progress: AttestationWork | None = None
+    result: DocumentAttestation | None = None
+    error: ProtocolError | None = None
+
+    @model_validator(mode="after")
+    def terminal_evidence(self) -> "DocumentAttestationJob":
+        if self.state == "completed" and self.result is None:
+            raise ValueError("Completed attestation job requires evidence")
+        if self.state != "completed" and self.result is not None:
+            raise ValueError("Only completed jobs may expose evidence")
+        return self
+
+
+class DocumentAttestationResponse(
+    RootModel[DocumentAttestation | DocumentAttestationJob]
+):
+    pass

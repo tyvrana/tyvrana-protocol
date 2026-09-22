@@ -42,3 +42,38 @@ def test_complete_attestation_and_incomplete_evidence() -> None:
         }
     )
     assert incomplete.digest is None
+
+
+def test_bounded_work_diagnostics() -> None:
+    from tyvrana_protocol.attestation import AttestationWork
+
+    data: dict[str, Any] = dict(
+        exceeded="stream_bytes",
+        stream_bytes=513,
+        stream_items=12,
+        bulk_elements=128,
+        resources_completed=2,
+        peak_buffer_bytes=128,
+        current_category="images",
+        current_resource="Texture",
+        limits=dict(
+            stream_bytes=512,
+            stream_items=1000,
+            bulk_elements=1024,
+            buffer_bytes=256,
+            resources=4096,
+            elapsed_ms=30000,
+            nesting=40,
+        ),
+        categories=[],
+        heaviest=[],
+    )
+    assert AttestationWork.model_validate(data).exceeded == "stream_bytes"
+    patches: list[dict[str, Any]] = [
+        dict(stream_bytes=-1),
+        dict(exceeded="unknown"),
+        dict(current_resource="x" * 257),
+    ]
+    for patch in patches:
+        with pytest.raises(ValidationError):
+            AttestationWork.model_validate({**data, **patch})

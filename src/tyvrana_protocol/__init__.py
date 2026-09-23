@@ -41,9 +41,21 @@ from .resources import (
     ResourceObservation,
     ResourceReference,
 )
+from .restores import (
+    DocumentRestoreJob,
+    DocumentRestoreRequest,
+    DocumentRestoreResult,
+    DocumentRestoreTarget,
+    DocumentState,
+)
 from .types import ArtifactId, Identifier, JsonValue, QualifiedName, TransferId
 
 __all__ = [
+    "DocumentRestoreJob",
+    "DocumentRestoreRequest",
+    "DocumentRestoreResult",
+    "DocumentRestoreTarget",
+    "DocumentState",
     "DocumentMutationJob",
     "DocumentMutationRequest",
     "DocumentMutationResult",

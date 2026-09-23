@@ -260,3 +260,11 @@ running adapter, and `project_path` is a mutable locator. The adapter owns ident
 creation, persistence and duplicate handling. A content fingerprint covers only the
 adapter's declared `fingerprint_scope`; identity existence is not visual, geometry
 or behavior validation. Semantic projects, checkpoints and persistence belong to core.
+
+Trusted document replacement uses `DocumentRestoreRequest` with explicit discard
+consent, exact current document identity/content, and a durable target's lineage,
+format, content digest and file hash. `DocumentRestoreJob` reports a qualified
+before/after receipt. Unlike an ordinary mutation receipt, a restore may replace
+the document session while retaining its executing host. Core must independently
+prove the target before invoking this adapter contract; it is not a trust-current
+or general divergence override.

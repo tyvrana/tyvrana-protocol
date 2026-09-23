@@ -7,6 +7,11 @@ def test_package_imports() -> None:
 
 def test_public_api_is_available_at_the_package_root() -> None:
     expected = {
+        "DocumentRestoreJob",
+        "DocumentRestoreRequest",
+        "DocumentRestoreResult",
+        "DocumentRestoreTarget",
+        "DocumentState",
         "DocumentMutationJob",
         "DocumentMutationRequest",
         "DocumentMutationResult",

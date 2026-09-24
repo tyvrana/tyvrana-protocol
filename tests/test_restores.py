@@ -14,7 +14,7 @@ def request() -> dict[str, object]:
     return dict(
         mutation_id="restore",
         operation="editor.file.open",
-        arguments={},
+        locator="/trusted.document",
         discard_current=True,
         current=dict(
             host_session_id="host",

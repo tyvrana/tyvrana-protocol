@@ -268,3 +268,22 @@ before/after receipt. Unlike an ordinary mutation receipt, a restore may replace
 the document session while retaining its executing host. Core must independently
 prove the target before invoking this adapter contract; it is not a trust-current
 or general divergence override.
+
+## Independent proof-host lifecycle
+
+`ProofHostStart`, `ProofHostControl` and `ProofHostStatus` describe a Core-owned
+lease for an application-owned disposable proof process. Semantic capability tags
+`proof_host_start`, `proof_host_status` and `proof_host_stop` identify the operations;
+clients do not invoke them. `ProofArtifact` carries a durable locator, authoritative
+SHA256 and logical document identity. Locators are reopening hints, not identities
+or binary artifact transport.
+
+Registrations may supply `AdapterRuntime` with implementation build, process ID and
+background status. A proof role requires an unguessable `ProofLease` capability and
+parent adapter identity; work registrations cannot carry proof leases. Core admits
+proof registrations only against its outstanding lease and exact application/build/
+document expectations, and excludes them from normal work routing.
+
+Complete document attestations can report the saved `file_locator` alongside
+`file_sha256`. Guarded restore requests carry that durable locator with current and
+target evidence; the application adapter owns how to open it.

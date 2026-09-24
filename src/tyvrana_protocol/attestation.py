@@ -72,6 +72,8 @@ class DocumentAttestation(_ProtocolModel):
     elapsed_ms: Annotated[float, Field(ge=0, allow_inf_nan=False)]
     file_sha256: Annotated[str, Field(pattern="^[0-9a-f]{64}$")] | None = None
 
+    file_locator: str | None = Field(default=None, min_length=1, max_length=4096)
+
     work: AttestationWork | None = None
     resources: list[ResourceObservation] = Field(default_factory=list, max_length=4096)
     resource_scope: str | None = Field(default=None, max_length=128)

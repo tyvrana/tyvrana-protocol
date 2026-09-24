@@ -98,6 +98,31 @@ class ArtifactDescriptor(_ProtocolModel):
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
 
+class ProofLease(_ProtocolModel):
+    """Core-issued capability, accepted only for its originating work host."""
+
+    lease_id: Identifier
+    token: Annotated[str, Field(pattern="^[0-9a-f]{64}$")]
+    parent_adapter_id: Identifier
+
+
+class AdapterRuntime(_ProtocolModel):
+    role: Literal["work", "proof"] = "work"
+    build: Annotated[str, Field(pattern="^[0-9a-f]{64}$")]
+    process_id: int = Field(gt=0)
+    background: bool
+    proof_lease: ProofLease | None = None
+
+    @model_validator(mode="after")
+    def proof_identity(self) -> "AdapterRuntime":
+        if self.role == "proof":
+            if not self.background or self.proof_lease is None:
+                raise ValueError("Proof hosts require background execution and a lease")
+        elif self.proof_lease is not None:
+            raise ValueError("Only proof hosts may carry proof leases")
+        return self
+
+
 class AdapterRegistration(_ProtocolModel):
     """Identify one running application instance and its supported operations."""
 
@@ -114,6 +139,9 @@ class AdapterRegistration(_ProtocolModel):
         default=None,
         exclude_if=lambda value: value is None,
         description="Saved application-document identity; paths are only locators.",
+    )
+    runtime: AdapterRuntime | None = Field(
+        default=None, exclude_if=lambda value: value is None
     )
     resource_inspection: QualifiedName | None = Field(
         default=None,

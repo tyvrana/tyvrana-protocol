@@ -16,6 +16,7 @@ from .codec import decode_message, encode_message
 from .messages import (
     AdapterEvent,
     AdapterRegistration,
+    AdapterRuntime,
     ArtifactAbort,
     ArtifactAccepted,
     ArtifactBegin,
@@ -28,6 +29,7 @@ from .messages import (
     OperationFailure,
     OperationRequest,
     OperationSuccess,
+    ProofLease,
     ProtocolError,
 )
 from .mutations import (
@@ -35,6 +37,7 @@ from .mutations import (
     DocumentMutationRequest,
     DocumentMutationResult,
 )
+from .proofs import ProofArtifact, ProofHostControl, ProofHostStart, ProofHostStatus
 from .resources import (
     ResourceInspectionRequest,
     ResourceInspectionResult,
@@ -51,6 +54,12 @@ from .restores import (
 from .types import ArtifactId, Identifier, JsonValue, QualifiedName, TransferId
 
 __all__ = [
+    "AdapterRuntime",
+    "ProofLease",
+    "ProofArtifact",
+    "ProofHostControl",
+    "ProofHostStart",
+    "ProofHostStatus",
     "DocumentRestoreJob",
     "DocumentRestoreRequest",
     "DocumentRestoreResult",

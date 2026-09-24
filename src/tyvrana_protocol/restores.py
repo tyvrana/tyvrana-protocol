@@ -30,7 +30,7 @@ class DocumentRestoreTarget(_ProtocolModel):
 class DocumentRestoreRequest(_ProtocolModel):
     mutation_id: ResourceToken
     operation: QualifiedName
-    arguments: JsonValue
+    locator: str = Field(min_length=1, max_length=4096)
     discard_current: Literal[True]
     current: DocumentState
     target: DocumentRestoreTarget
